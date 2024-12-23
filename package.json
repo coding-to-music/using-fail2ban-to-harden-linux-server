@@ -1,0 +1,11 @@
+{
+  "name": "using-fail2ban-to-harden-linux-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "git add . && git commit -m Build && git push"
+  },
+  "repository": "git@github.com:coding-to-music/using-fail2ban-to-harden-linux-server.git",
+  "author": "coding-to-music <connors.tom@gmail.com>",
+  "license": "MIT"
+}

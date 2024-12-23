@@ -1,6 +1,6 @@
 # using-fail2ban-to-harden-linux-server
 
-# 🚀 use fail2ban to put ban and put into jail the ip address of bots and repeated failures to log into the linux server 🚀
+# 🚀 use fail2ban to ban and put into jail the ip address of bots and repeated failures to log into the linux server 🚀
 
 https://github.com/coding-to-music/using-fail2ban-to-harden-linux-server
 
