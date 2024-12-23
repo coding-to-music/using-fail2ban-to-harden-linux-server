@@ -152,6 +152,221 @@ You should deploy Fail2Ban to protect your server in such cases. Fail2Ban will b
 
 You can guess the popularity of Fail2Ban from the fact that it is available in the official repositories of all the major Linux distributions. This makes installing Fail2Ban a simple task.
 
+https://linuxhandbook.com/fail2ban-basic/
+
+## Install Fail2Ban on Ubuntu & Debian
+
+First, make sure your system is updated:
+
+```java
+sudo apt update && sudo apt upgrade -y
+```
+
+Now, install Fail2Ban with this command:
+
+```java
+sudo apt install fail2ban
+```
+
+## Understanding Fail2Ban configuration file
+
+There are two main configuration files in Fail2Ban: /etc/fail2ban/fail2ban.conf and /etc/fail2ban/jail.conf. Let me explain what they do.
+
+`/etc/fail2ban/fail2ban.conf`: This is the configuration file for the operational settings of the Fail2Ban daemon. Settings like loglevel, log file, socket and pid file is defined here.
+
+`/etc/fail2ban/jail.conf`: This is where all the magic happens. This is the file where you can configure things like default ban time, number of reties before banning an IP, whitelisting IPs, mail sending information etc. Basically you control the behavior of Fail2Ban from this file.
+
+Now, before you go and change these files, Fail2Ban advise making a copy with .local file for these conf files. It’s because the default conf files can be overwritten in updates and you’ll lose all your settings.
+
+```java
+sudo cp /etc/fail2ban/fail2ban.conf /etc/fail2ban/fail2ban.local
+
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+```
+
+Now let’s understand the jail.conf file. If you use the less command to read this big file, it may seem quite confusing. The conf file tries to explain everything with way too many comments. So, let me simplify this for you.
+
+The `jail.conf` file is divided into services. There is a `[Default]` section and it applies to all services. And then you can see various services with their respective settings (if any). All these services are in brackets. You’ll see sections like `[sshd]`, `[apache-auth]`, `[squid]` etc.
+
+If I remove the comments, the default section looks like this:
+
+```java
+[DEFAULT]
+ignorecommand =
+bantime = 10m
+findtime = 10m
+maxretry = 5
+backend = auto
+usedns = warn
+logencoding = auto
+enabled = false
+mode = normal
+filter = %(name)s[mode=%(mode)s]
+destemail = root@localhost
+sender = root@
+mta = sendmail
+protocol = tcp
+chain =
+port = 0:65535
+fail2ban*agent = Fail2Ban/%(fail2ban_version)s
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+action_abuseipdb = abuseipdb
+action = %(action*)s
+```
+
+Let me tell you the meaning of some of these parameters.
+
+- `bantime`: Set the length of the ban. Default is 10 minutes.
+- `findtime`: The window in which the action on an IP will be taken. Default is 10 minutes. Suppose a bad login was attempted by a certain IP at 10:30. If the same IP reaches the maximum number of retries before 10:40, it will be banned. Otherwise, the next failed attempt after 10:40 will be counted as first failed attempt.
+- `maxretry`: The number of failed retries before an action is taken
+- `usedns`: The “warn” setting attempts to use reverse-DNS to look up the hostname and ban it using hostname. Setting it to no will ban IPs, not hostname.
+- `destemail`: The email address to which the alerts will be sent (needs to be configured)
+- `sender`: The sender name in the notification email
+- `mta`: Mail Transfer Agent used for notification email
+- `banaction`: This parameter uses the /etc/fail2ban/action.d/iptables-multiport.conf file to set the action after maximum failed retries
+- `protocol`: The type of traffic that will be dropped after the ban
+
+If you want to make any changes for any jail (or for all the jail), like the maximum retries, ban time, find time etc., you should edit the `jail.local` file.
+
+## How to use Fail2Ban to secure Linux server
+
+Let me show you some of the ways you can use Fail2Ban to harden Linux security.
+
+Note that you need to be root user or have sudo access to run the fail2ban commands.
+
+## Enable Fail2Ban on your server and check all running jails
+
+You can use systemd commands to start and enable Fail2Ban on your Linux server:
+
+```java
+sudo systemctl start fail2ban
+sudo systemctl enable fail2ban
+```
+
+Once Fail2Ban is enabled, you can see the status and the active jails with fail2ban-client command:
+
+```java
+sudo fail2ban-client status
+```
+
+```java
+Status
+|- Number of jail: 1
+`- Jail list: sshd
+```
+
+In case you were wondering, sshd jail is enabled by default.
+
+## See Fail2Ban log
+
+Fail2Ban log is located at `/var/log/fail2ban.log`. The log files are in the following format:
+
+```java
+2019-03-25 07:09:08,004 fail2ban.filter [25630]: INFO [sshd] Found 139.59.69.76 – 2019-03-25 07:09:07
+2019-03-25 07:09:36,756 fail2ban.filter [25630]: INFO [sshd] Found 159.89.205.213 – 2019-03-25 07:09:36
+2019-03-25 07:09:36,757 fail2ban.filter [25630]: INFO [sshd] Found 159.89.205.213 – 2019-03-25 07:09:36
+2019-03-25 07:09:36,774 fail2ban.actions [25630]: NOTICE [sshd] Ban 159.89.205.213
+2019-03-25 07:09:36,956 fail2ban.filter [25630]: INFO [sshd] Found 182.70.253.202 – 2019-03-25 07:09:36
+2019-03-25 07:09:36,957 fail2ban.filter [25630]: INFO [sshd] Found 182.70.253.202 – 2019-03-25 07:09:36
+2019-03-25 07:09:36,981 fail2ban.actions [25630]: NOTICE [sshd] Ban 182.70.253.202
+2019-03-25 07:09:37,247 fail2ban.filter [25630]: INFO [sshd] Found 112.64.214.90 – 2019-03-25 07:09:37
+2019-03-25 07:09:37,248 fail2ban.filter [25630]: INFO [sshd] Found 112.64.214.90 – 2019-03-25 07:09:37
+2019-03-25 07:09:37,589 fail2ban.actions [25630]: NOTICE [sshd] Ban 112.64.214.90
+```
+
+You can see that it identifies the IPs and bans them when they cross the threshold of maximum retry.
+
+## See banned IPs by Fail2Ban
+
+One way is to check the status of a certain jail. You can use the Fail2Ban client for this purpose.
+
+```java
+sudo fail2ban-client status <jail_name>
+```
+
+For example, if you have to see all the bad ssh logins banned by Fail2Ban, you can use it in the following manner. The output would show the total failed attempts and the total banned IPs.
+
+```java
+sudo fail2ban-client status sshd
+```
+
+```java
+Status for the jail: sshd
+|- Filter
+| |- Currently failed: 14
+| |- Total failed: 715
+| `- File list: /var/log/auth.log
+`- Actions
+|- Currently banned: 7
+|- Total banned: 17
+`- Banned IP list: 177.47.115.67 118.130.133.110 68.183.62.73 202.65.154.110 106.12.102.114 61.184.247.3 218.92.1.150
+```
+
+The system that is try to login via SSH from the failed login should get an error like this
+
+```java
+ssh: connect to host 93.233.73.133 port 22: Connection refused
+```
+
+## How to permanently ban an IP with Fail2Ban
+
+By now you know that the ban put on an IP by Fail2Ban is a temporary one. By default it’s for 10 minutes and the attacker can try to login again after 10 minutes.
+
+This poses a security risk because attackers could use a script that tries logging in after an interval of 10 minutes.
+
+So, how do you put a permanent ban using Fail2Ban? There is no clear answer for that.
+
+Starting Fail2Ban version 0.11, the ban time will be automatically calculated and the persistent IPs will have their ban time increased exponentially.
+
+But if you check your Fail2Ban version, you probably are running the version 0.10.
+
+```java
+sudo fail2ban-server --version
+```
+
+```java
+Fail2Ban v0.10.2
+Copyright (c) 2004-2008 Cyril Jaquier, 2008- Fail2Ban Contributors
+Copyright of modifications held by their respective authors.
+Licensed under the GNU General Public License v2 (GPL).
+```
+
+In earlier versions, you could use a negative bantime (bantime = -1) and that would have been equivalent to a permanent ban but if you try this method, you’ll probably see an error like ‘Starting fail2ban: ERROR NOK: (‘database disk image is malformed’,)’.
+
+One not so clean workaround would be to increase the bantime to something like 1 day, 1 week, 1 month or 1 year. This could circumvent the problem until the new version is available on your system.
+
+### How to unban IP blocked by Fail2Ban
+
+First check if the IP is being blocked or not. Since Fail2Ban works on the iptables, you can look into the iptable to view the IPs being banned by your server:
+
+```java
+iptables -n -L
+```
+
+You may have to use grep command if there are way too many IPs being banned.
+
+If you find the specified IP address in the output, it is being banned:
+
+So, the next step is to find which ‘jail’ is banning the said IP. You’ll have to use Grep command with the fail2ban logs here.
+
+As you can see in the output below, the IP is being banned by sshd jail.
+
+```java
+sudo grep -E ‘Ban.*61.184.247.3’ /var/log/fail2ban.log
+```
+
+```java
+2019-03-14 13:09:25,029 fail2ban.actions [25630]: NOTICE [sshd] Ban 61.184.247.3
+2019-03-14 13:52:56,745 fail2ban.actions [25630]: NOTICE [sshd] Ban 61.184.247.3
+```
+
+Now that you know the name of the jail blocking the IP, you can unban the IP using the fail2ban-client:
+
+```java
+sudo fail2ban-client set <jail_name> unbanip <ip_address>
+```
+
 ### How to whitelist IP in Fail2Ban
 
 https://linuxhandbook.com/fail2ban-basic/
@@ -159,7 +374,13 @@ https://linuxhandbook.com/fail2ban-basic/
 It won’t be a good thing if you ban yourself, right? To ignore an IP address from being banned by the current session of Fail2Ban, you can whitelist the IP using a command like this:
 
 ```java
-fail2ban-client set <JAIL_NAME> addignoreip <IP_Address>
+sudo fail2ban-client set <JAIL_NAME> addignoreip <IP_Address>
+```
+
+These IP addresses/networks are ignored:
+
+```java
+`- 203.93.83.113
 ```
 
 You can find your IP address in Linux easily. In my case, it was
@@ -178,12 +399,6 @@ or
 ip address
 ```
 
-These IP addresses/networks are ignored:
-
-```java
-`- 203.93.83.113
-```
-
 If you want to permanently whitelist the IP, you should edit the jail configuration file. Go to the said jail section and add the ignoreip line like this:
 
 ```java
@@ -199,7 +414,7 @@ You’ll have to restart Fail2Ban to take this change into effect.
 You can see all the IPs whitelisted by a jail using this command:
 
 ```java
-fail2ban-client get <JAIL_NAME> ignoreip
+sudo fail2ban-client get <JAIL_NAME> ignoreip
 ```
 
 It should show all the IPs being ignored by Fail2Ban for that jail:
@@ -221,7 +436,7 @@ These IP addresses/networks are ignored:
 If you are removing the IP from a certain jail’s whitelist, you can use this command:
 
 ```java
-fail2ban-client set <JAIL_NAME> delignoreip <IP_Address>
+sudo fail2ban-client set <JAIL_NAME> delignoreip <IP_Address>
 ```
 
 If you want to permanently remove the IP, you should edit the `/etc/fail2ban/jail.local` file.
