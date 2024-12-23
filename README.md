@@ -22,6 +22,136 @@ git push -u origin main
 
 ```
 
+# What is Fail2Ban?
+
+If you have enabled SSH, please check the login history of your Linux server or view the SSH logs. You’ll be surprised to see a huge number of IPs that try to log in to your server via SSH.
+
+https://linuxhandbook.com/linux-login-history/
+
+If you have no mechanism in place to deter these login attempts, your system is susceptible to bruteforce attack. Basically, a script/bot will keep on attempting SSH connection your system by trying various combination of username and passwords.
+
+This is where a tool like Fail2Ban comes into picture. Fail2Ban is a free and open source software that helps in securing your Linux server against malicious logins. Fail2Ban will ban the IP (for a certain time) if there is a certain number of failed login attempts.
+
+Fail2Ban works out of the box with the basic settings but it is extremely configurable as well. You can tweak it to your liking and create filters and rules as per your need.
+
+Sounds interesting? Why not test Fail2Ban? Read and follow the rest of the article and try Fail2Ban yourself.
+
+# Viewing Linux login history
+
+https://linuxhandbook.com/linux-login-history/
+
+Linux is very good at keeping logs of everything that goes on your system. Quite naturally, it also stores logs about login and login attempts. The login information is stored in three files, wtmp, utmp and btmp:
+
+- `/var/log/wtmp` – Logs of last login sessions
+- `/var/run/utmp` – Logs of the current login sessions
+- `/var/log/btmp` – Logs of the bad login attempts
+
+Let’s see these things in a bit detail.
+
+### View history of all logged users
+
+To view the history of all the successful login on your system, simply use the command last.
+
+```java
+last
+```
+
+The output should look like this. As you can see, it lists the user, the IP address from where the user accessed the system, date and time frame of the login. pts/0 means the server was accessed via SSH.
+
+```java
+abhi pts/0 202.91.87.115 Wed Mar 13 13:31 still logged in
+root pts/0 202.91.87.115 Wed Mar 13 13:30 - 13:31 (00:00)
+servesha pts/0 125.20.97.117 Tue Mar 12 12:07 - 14:25 (02:17)
+servesha pts/0 209.20.189.152 Tue Mar 5 12:32 - 12:38 (00:06)
+root pts/0 202.91.87.114 Mon Mar 4 13:35 - 13:47 (00:11)
+
+wtmp begins Mon Mar 4 13:35:54 2019
+```
+
+The last line of the output tells you the when was the wtmp log file was created. This is important because if the wtmp file was deleted recently, last command won’t be able to show history of the logins prior to that date.
+
+You may have a huge history of login sessions so it’s better to pipe the output through less command.
+
+### View login history of a certain user
+
+If you just want to see the login history of a particular user, you can specify the user name with last command.
+
+```java
+last <username>
+```
+
+You’ll see the login information of only the selected user:
+
+```java
+last servesha
+servesha pts/0 125.20.97.117 Tue Mar 12 12:07 - 14:25 (02:17)
+servesha pts/0 209.20.189.152 Tue Mar 5 12:32 - 12:38 (00:06)
+
+wtmp begins Mon Mar 4 13:35:54 2019
+```
+
+### Display IP addresses in login history instead of hostname
+
+You couldn’t see it in the previous output but by default, last command shows the hostname instead of the IP address of the user. If you are on a sub-network, you’ll probably see only the hostnames.
+
+You can force to display the IP addresses of the previously logged users with the -i option.
+
+```java
+last -i
+```
+
+### Display only last N logins
+
+If your system has a good uptime, perhaps your login history would be huge. As I mentioned earlier, you can use the less command or other file viewing commands like head or tail.
+
+Last command gives you the option to display only certain number of login history.
+
+```java
+last -N
+
+example:
+
+last -100
+```
+
+Just replace N with the number you want. You can also combine it with the username.
+
+### View all the bad login attempts on your Linux server
+
+Now comes the important part: checking the bad login attempts on your server.
+
+You can do that in two ways. You can either use the last command with the btmp log file:
+
+```java
+last -f /var/log/btmp
+```
+
+or you can use the lastb command:
+
+```java
+lastb
+```
+
+Both of these commands will yield the same result. The lastb is actually a link to the last command with the specified file.
+
+```java
+root     ssh:notty    218.92.0.158     Wed Mar 13 14:34 - 14:34  (00:00)
+sindesi  ssh:notty    59.164.69.10     Wed Mar 13 14:34 - 14:34  (00:00)
+root     ssh:notty    218.92.0.158     Wed Mar 13 14:34 - 14:34  (00:00)
+sindesi  ssh:notty    59.164.69.10     Wed Mar 13 14:34 - 14:34  (00:00)
+root     ssh:notty    218.92.0.158     Wed Mar 13 14:34 - 14:34  (00:00)
+```
+
+Bad logins could be an incorrect password entered by a legitimate user. It could also be a bot trying to brute force your password.
+
+You have to analyze here and see if you recognize the IPs in the log. If there has been too many login attempts from a certain IP with user root, probably someone is trying to attack your system by bruteforcing.
+
+You should deploy Fail2Ban to protect your server in such cases. Fail2Ban will ban such IPs from your server and thus giving your server an extra layer of protection.
+
+## Installing Fail2Ban on Linux
+
+You can guess the popularity of Fail2Ban from the fact that it is available in the official repositories of all the major Linux distributions. This makes installing Fail2Ban a simple task.
+
 ### How to whitelist IP in Fail2Ban
 
 https://linuxhandbook.com/fail2ban-basic/
@@ -94,4 +224,4 @@ If you are removing the IP from a certain jail’s whitelist, you can use this c
 fail2ban-client set <JAIL_NAME> delignoreip <IP_Address>
 ```
 
-If you want to permanently remove the IP, you should edit the /etc/fail2ban/jail.local file.
+If you want to permanently remove the IP, you should edit the `/etc/fail2ban/jail.local` file.
