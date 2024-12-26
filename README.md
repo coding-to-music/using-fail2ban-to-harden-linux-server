@@ -249,6 +249,20 @@ findtime  = 10m
 maxretry = 2
 ```
 
+restart the fail2ban service and verify it is operating correctly
+
+```java
+sudo systemctl restart fail2ban
+
+sudo systemctl status fail2ban.service
+
+sudo fail2ban-client status sshd
+
+sudo tail -f /var/log/auth.log
+
+sudo tail -f /var/log/fail2ban.log
+```
+
 ## How to use Fail2Ban to secure Linux server
 
 Let me show you some of the ways you can use Fail2Ban to harden Linux security.
