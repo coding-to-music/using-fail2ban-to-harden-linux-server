@@ -256,6 +256,8 @@ sudo systemctl restart fail2ban
 
 sudo systemctl status fail2ban.service
 
+sudo fail2ban-client status
+
 sudo fail2ban-client status sshd
 
 sudo tail -f /var/log/auth.log
