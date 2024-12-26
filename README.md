@@ -229,6 +229,26 @@ Let me tell you the meaning of some of these parameters.
 
 If you want to make any changes for any jail (or for all the jail), like the maximum retries, ban time, find time etc., you should edit the `jail.local` file.
 
+## edit the defaults to be more strict
+
+```java
+sudo vi /etc/fail2ban/jail.local
+```
+
+about line 90 you will see these entries, set them to these more strict values
+
+```java
+# "bantime" is the number of seconds that a host is banned.
+bantime  = 48h
+
+# A host is banned if it has generated "maxretry" during the last "findtime"
+# seconds.
+findtime  = 10m
+
+# "maxretry" is the number of failures before a host get banned.
+maxretry = 2
+```
+
 ## How to use Fail2Ban to secure Linux server
 
 Let me show you some of the ways you can use Fail2Ban to harden Linux security.
@@ -242,6 +262,8 @@ You can use systemd commands to start and enable Fail2Ban on your Linux server:
 ```java
 sudo systemctl start fail2ban
 sudo systemctl enable fail2ban
+
+sudo systemctl status fail2ban.service
 ```
 
 Once Fail2Ban is enabled, you can see the status and the active jails with fail2ban-client command:
@@ -341,7 +363,7 @@ One not so clean workaround would be to increase the bantime to something like 1
 First check if the IP is being blocked or not. Since Fail2Ban works on the iptables, you can look into the iptable to view the IPs being banned by your server:
 
 ```java
-iptables -n -L
+sudo iptables -n -L
 ```
 
 You may have to use grep command if there are way too many IPs being banned.
