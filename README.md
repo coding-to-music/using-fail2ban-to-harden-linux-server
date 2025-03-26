@@ -437,6 +437,19 @@ or
 ip address
 ```
 
+Mismatched IPs: It’s possible your outgoing IP isn’t what you expect. Action: From your laptop (in any shell), check your public IP:
+
+```java
+curl ifconfig.me
+```
+
+Find all whitelisted ip addresses
+
+```java
+sudo fail2ban-client get sshd ignoreip
+sudo fail2ban-client get <JAIL_NAME> ignoreip
+```
+
 If you want to permanently whitelist the IP, you should edit the jail configuration file. Go to the said jail section and add the ignoreip line like this:
 
 ```java
